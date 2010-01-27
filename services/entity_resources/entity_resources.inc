@@ -25,15 +25,29 @@ class EntityResourceServicesCRUD {
     $entity = $this->load($id);
     // Transform entity into an array of properties to return.
     $wrapper = entity_metadata_wrapper($this->entityType, $entity);
-    $info = entity_get_info();
+    $entity_info = entity_get_info();
     $data = array();
     foreach ($wrapper as $name => $property_info) {
-      if (!isset($property_info['type']) || !isset($info[$property_info['type']])) {
+      $type = isset($property_info['type']) ? $property_info['type'] : 'text';
+      if ($is_list = entity_metadata_list_extract_type($type)) {
+        $type = $is_list;
+      }
+      // For non entities just output the value.
+      if (!isset($entity_info[$type])) {
         $data[$name] = $wrapper->$name->value();
       }
       // For referenced entities only return the URI.
-      elseif (isset($wrapper->$name->url)) {
+      elseif (!$is_list && isset($wrapper->$name->url)) {
         $data[$name] = $wrapper->$name->url->value();
+      }
+      elseif ($is_list) {
+        // Support referencing a list of entities.
+        foreach ($wrapper->$name as $key => $value) {
+          $item = $wrapper->{$name}[$key];
+          if (isset($item->url)) {
+            $data[$name][$key] = $item->url->value();
+          }
+        }
       }
     }
     $data['uri'] = services_resource_uri(array($this->entityType, $id));
