@@ -155,7 +155,7 @@ function services_controller_execute($controller, $args = array(), $options = ar
   // Execute the controller callback
   $result = call_user_func_array($controller['callback'], $args);
 
-  if ($server_info) {
+  if ($drupal_path) {
     chdir($server_root);
   }
 
