@@ -1,22 +1,11 @@
 <?php
 // $Id: node_resource.module,v 1.1.2.1 2009/09/05 13:57:58 marcingy Exp $
 
-function node_resource_autoload_info() {
-  return array(
-    'NodeResourceFeedModel' => array(
-      'file' => 'node_resource.models.inc',
-    ),
-    'NodeResourceViewFeedModel' => array(
-      'file' => 'node_resource.models.inc',
-    ),
-  );
-}
-
 function node_resource_services_resources() {
   return array(
     'node' => array(
-      'file' => array('type' => 'inc', 'module' => 'node_resource'),
       'retrieve' => array(
+        'file' => array('type' => 'inc', 'module' => 'node_resource'),
         'callback' => '_node_resource_retrieve',
         'args' => array(
           array(
@@ -38,6 +27,7 @@ function node_resource_services_resources() {
         'access arguments append' => TRUE,
       ),
       'create' => array(
+        'file' => array('type' => 'inc', 'module' => 'node_resource'),
         'callback' => '_node_resource_create',
         'args' => array(
           array(
@@ -53,6 +43,7 @@ function node_resource_services_resources() {
         'access arguments append' => TRUE,
       ),
       'update' => array(
+        'file' => array('type' => 'inc', 'module' => 'node_resource'),
         'callback' => '_node_resource_update',
         'args' => array(
           array(
@@ -68,6 +59,7 @@ function node_resource_services_resources() {
         'access arguments append' => TRUE,
       ),
       'delete' => array(
+        'file' => array('type' => 'inc', 'module' => 'node_resource'),
         'callback' => '_node_resource_delete',
         'args' => array(
           array(
@@ -81,6 +73,7 @@ function node_resource_services_resources() {
         'access arguments append' => TRUE,
       ),
       'index' => array(
+        'file' => array('type' => 'inc', 'module' => 'node_resource'),
         'callback' => '_node_resource_index',
         'args' => array(
           array(
