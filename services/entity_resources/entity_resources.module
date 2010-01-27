@@ -1,0 +1,109 @@
+<?php
+// $Id: entity_resources.module,v 1.1.2.1 2009/09/05 13:57:58 marcingy Exp $
+
+/**
+ * Implements hook_services_resources().
+ */
+function entity_resources_services_resources() {
+  $resources = array();
+  foreach (entity_get_info() as $entity_type => $info) {
+    // Integrate all entities for which we have view access metadata.
+    if (entity_metadata_entity_access('view', $entity_type) !== NULL) {
+      $resources[$entity_type]['retrieve'] = array(
+        'callback' => array('EntityResourceServicesCRUD', 'retrieve'),
+        'args' => array(
+          array(
+            'name' => 'id',
+            'optional' => FALSE,
+            'source' => array('path' => 0),
+            'type' => 'int',
+            'description' => 'The id of the entity to get',
+          ),
+        ),
+        'models' => array(
+          'ResourceFeedModel' => array(
+            'class' => 'EntityResourceFeedModel',
+            'arguments' => array('entity type' => $entity_type, 'source' => 'single'),
+          ),
+        ),
+        'access callback' => 'entity_metadata_entity_access',
+        'access arguments' => array('view', $entity_type),
+        'access arguments append' => TRUE,
+      );
+    }
+    
+    // Integrate all entities for which we have creation and save callbacks.
+    if (entity_metadata_entity_access('create', $entity_type) !== NULL && isset($info['creation callback']) && isset($info['save callback'])) {
+      $resources[$entity_type]['create'] = array(
+        'callback' => array('EntityResourceServicesCRUD', 'create'),
+        'args' => array(
+          array(
+            'name' => 'values',
+            'optional' => FALSE,
+            'source' => 'data',
+            'description' => 'The entity to create',
+            'type' => 'struct',
+          ),
+        ),
+        'models' => array(
+          'ResourceFeedModel' => array(
+            'class' => 'EntityResourceFeedModel',
+            'arguments' => array('entity type' => $entity_type, 'source' => 'single'),
+          ),
+        ),
+        'access callback' => 'entity_metadata_entity_access',
+        'access arguments' => array('create', $entity_type),
+        'access arguments append' => TRUE,
+      );
+    }
+
+    // Integrate all entities for which we have a save callback.
+    if (entity_metadata_entity_access('update', $entity_type) !== NULL && isset($info['save callback'])) {
+      $resources[$entity_type]['update'] = array(
+        'callback' => array('EntityResourceServicesCRUD', 'update'),
+        'args' => array(
+          array(
+            'name' => $entity_type,
+            'optional' => FALSE,
+            'source' => 'data',
+            'description' => 'The entity data to update',
+            'type' => 'struct',
+          ),
+        ),
+        'models' => array(
+          'ResourceFeedModel' => array(
+            'class' => 'EntityResourceFeedModel',
+            'arguments' => array('entity type' => $entity_type, 'source' => 'single'),
+          ),
+        ),
+        'access callback' => 'entity_metadata_entity_access',
+        'access arguments' => array('create', $entity_type),
+        'access arguments append' => TRUE,
+      );
+    }
+    
+    // Integrate all entities for which we have a deletion callback.
+    if (entity_metadata_entity_access('delete', $entity_type) !== NULL && isset($info['deletion callback'])) {
+      $resources[$entity_type]['delete'] = array(
+        'callback' => array('EntityResourceServicesCRUD', 'delete'),
+        'args' => array(
+          array(
+            'name' => 'id',
+            'optional' => FALSE,
+            'source' => array('path' => 0),
+          ),
+        ),
+        'models' => array(
+          'ResourceFeedModel' => array(
+            'class' => 'EntityResourceFeedModel',
+            'arguments' => array('entity type' => $entity_type, 'source' => 'single'),
+          ),
+        ),
+        'access callback' => 'entity_metadata_entity_access',
+        'access arguments' => array('create', $entity_type),
+        'access arguments append' => TRUE,
+      );
+    }
+  }
+  return $resources;
+}

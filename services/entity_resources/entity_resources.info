@@ -1,0 +1,10 @@
+; $Id: entity_resources.info,v 1.1.2.1 2009/09/05 13:57:58 marcingy Exp $
+name = Entity Resources
+description = Provides resources for all drupal entities, e.g. nodes, user, comments and terms.
+package = Services
+core = 7.x
+dependencies[] = services
+dependencies[] = entity_metadata
+files[] = entity_resources.module
+files[] = entity_resources.info
+files[] = entity_resources.inc
