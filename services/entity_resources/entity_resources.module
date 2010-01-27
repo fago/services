@@ -7,10 +7,14 @@
 function entity_resources_services_resources() {
   $resources = array();
   foreach (entity_get_info() as $entity_type => $info) {
+    // We instantiate a CRUD object, which we use for callbacks. The object
+    // stores the entity type needed by the callbacks.
+    $crud_object = new EntityResourceServicesCRUD($entity_type);
+    
     // Integrate all entities for which we have view access metadata.
-    if (entity_metadata_entity_access('view', $entity_type) !== NULL) {
+    if ($crud_object->access('view') !== NULL) {
       $resources[$entity_type]['retrieve'] = array(
-        'callback' => array('EntityResourceServicesCRUD', 'retrieve'),
+        'callback' => array($crud_object, 'retrieve'),
         'args' => array(
           array(
             'name' => 'id',
@@ -26,16 +30,16 @@ function entity_resources_services_resources() {
             'arguments' => array('entity type' => $entity_type, 'source' => 'single'),
           ),
         ),
-        'access callback' => 'entity_metadata_entity_access',
-        'access arguments' => array('view', $entity_type),
+        'access callback' => array($crud_object, 'access'),
+        'access arguments' => array('view'),
         'access arguments append' => TRUE,
       );
     }
     
     // Integrate all entities for which we have creation and save callbacks.
-    if (entity_metadata_entity_access('create', $entity_type) !== NULL && isset($info['creation callback']) && isset($info['save callback'])) {
+    if ($crud_object->access('create') !== NULL && isset($info['creation callback']) && isset($info['save callback'])) {
       $resources[$entity_type]['create'] = array(
-        'callback' => array('EntityResourceServicesCRUD', 'create'),
+        'callback' => array($crud_object, 'create'),
         'args' => array(
           array(
             'name' => 'values',
@@ -51,16 +55,16 @@ function entity_resources_services_resources() {
             'arguments' => array('entity type' => $entity_type, 'source' => 'single'),
           ),
         ),
-        'access callback' => 'entity_metadata_entity_access',
-        'access arguments' => array('create', $entity_type),
+        'access callback' => array($crud_object, 'access'),
+        'access arguments' => array('create'),
         'access arguments append' => TRUE,
       );
     }
 
     // Integrate all entities for which we have a save callback.
-    if (entity_metadata_entity_access('update', $entity_type) !== NULL && isset($info['save callback'])) {
+    if ($crud_object->access('update') !== NULL && isset($info['save callback'])) {
       $resources[$entity_type]['update'] = array(
-        'callback' => array('EntityResourceServicesCRUD', 'update'),
+        'callback' => array($crud_object, 'update'),
         'args' => array(
           array(
             'name' => $entity_type,
@@ -76,16 +80,16 @@ function entity_resources_services_resources() {
             'arguments' => array('entity type' => $entity_type, 'source' => 'single'),
           ),
         ),
-        'access callback' => 'entity_metadata_entity_access',
-        'access arguments' => array('create', $entity_type),
+        'access callback' => array($crud_object, 'access'),
+        'access arguments' => array('update'),
         'access arguments append' => TRUE,
       );
     }
     
     // Integrate all entities for which we have a deletion callback.
-    if (entity_metadata_entity_access('delete', $entity_type) !== NULL && isset($info['deletion callback'])) {
+    if ($crud_object->access('delete') !== NULL && isset($info['deletion callback'])) {
       $resources[$entity_type]['delete'] = array(
-        'callback' => array('EntityResourceServicesCRUD', 'delete'),
+        'callback' => array($crud_object, 'delete'),
         'args' => array(
           array(
             'name' => 'id',
@@ -99,8 +103,8 @@ function entity_resources_services_resources() {
             'arguments' => array('entity type' => $entity_type, 'source' => 'single'),
           ),
         ),
-        'access callback' => 'entity_metadata_entity_access',
-        'access arguments' => array('create', $entity_type),
+        'access callback' => array($crud_object, 'access'),
+        'access arguments' => array('delete'),
         'access arguments append' => TRUE,
       );
     }

@@ -7,11 +7,24 @@
  */
 class EntityResourceServicesCRUD {
   
-  function retrieve($entity_type, $id) {
-    $return = entity_load($entity_type, array($id));
-    $entity = reset($return);
+  protected $entityType;
+  
+  public function __construct($entity_type) {
+    $this->entityType = $entity_type;
+  }
+  
+  protected function load($id) {
+    $return = entity_load($this->entityType, array($id));
+    return reset($return);
+  }
+  
+  /**
+   * Retrieve callback.
+   */
+  public function retrieve($id) {
+    $entity = $this->load($id);
     // Transform entity into an array of properties to return.
-    $wrapper = entity_metadata_wrapper($entity_type, $entity);
+    $wrapper = entity_metadata_wrapper($this->entityType, $entity);
     $info = entity_get_info();
     $data = array();
     foreach ($wrapper as $name => $property_info) {
@@ -23,27 +36,32 @@ class EntityResourceServicesCRUD {
         $data[$name] = $wrapper->$name->url->value();
       }
     }
-    $data['uri'] = services_resource_uri(array($entity_type, $id));
+    $data['uri'] = services_resource_uri(array($this->entityType, $id));
     return $data;
   }
   
-  function create($entity_type, array $values = array()) {
+  /**
+   * Create callback.
+   */
+  public function create(array $values = array()) {
     // Make sure all required values are present.
-    $info = entity_metadata_get_info($entity_type);
+    $info = entity_metadata_get_info($this->entity_type);
     foreach ($info['properties'] as $key => $property_info) {
       if (!empty($property_info['required']) && !isset($values[$key])) {
         return services_error('Missing property ' . check_plain($key), 406);
       }
     }
-    $entity = entity_metadata_entity_create($entity_type, $values);
-    entity_metadata_entity_save($entity_type, $entity);
-    $entity->uri = services_resource_uri(array($entity_type, $id));
+    $entity = entity_metadata_entity_create($this->entity_type, $values);
+    entity_metadata_entity_save($this->entity_type, $entity);
+    $entity->uri = services_resource_uri(array($this->entity_type, $id));
     return $entity;
   }
   
-  function update($entity_type, $id, $data) {
-    $return = entity_load($entity_type, array($id));
-    if ($entity = reset($return)) {
+  /**
+   * Update callback.
+   */
+  public function update($id, $data) {
+    if ($entity = $this->load($id)) {
       $wrapper = entity_metadata_wrapper($entity_type, $entity);
       foreach ($data as $name => $value) {
         $wrapper->$name->set($value);
@@ -55,9 +73,20 @@ class EntityResourceServicesCRUD {
     return services_error(t('Resource not found'), 404);
   }
 
-  function delete($entity_type, $id) {
+  /**
+   * Delete callback.
+   */
+  public function delete($id) {
     entity_metadata_entity_delete($entity_type, $id);
     return TRUE;
+  }
+  
+  /**
+   * Access callback.
+   */
+  public function access($op, $args = array()) {
+    $entity = ($op != 'create' && !empty($args)) ? $this->load($args[0]) : NULL;
+    return entity_metadata_entity_access($op, $this->entityType, $entity);
   }
 }
 
@@ -66,12 +95,12 @@ class EntityResourceServicesCRUD {
  * Provdides a resource feed model for entities.
  */
 class EntityResourceFeedModel implements ResourceFeedModel {
-  protected $entities, $entityType;
+  protected $items, $entityType;
   protected $mode = 'raw';
   protected $itemLength = 'fulltext';
 
   public function __construct($data, $arguments) {
-    $this->entities = $data;
+    $this->items = $data;
     $this->entityType = $arguments['entity type'];
     if (isset($arguments['mode'])) {
       $this->mode = $arguments['mode'];
@@ -82,50 +111,43 @@ class EntityResourceFeedModel implements ResourceFeedModel {
   }
 
   public function current() {
-    $entity = current($this->entities);
-    if ($entity !== FALSE) {
-      return new EntityResourceFeedModelItem($entity, $this->entityType, $this->mode, $this->itemLength);
+    $data = current($this->items);
+    if ($data !== FALSE) {
+      return new EntityResourceFeedModelItem($data, $this->entityType, $this->mode, $this->itemLength);
     }
     return FALSE;
   }
 
   public function key() {
-    return key($this->entities);
+    return key($this->items);
   }
 
   public function next() {
-    next($this->entities);
+    next($this->items);
   }
 
   public function rewind() {
-    reset($this->entities);
+    reset($this->items);
   }
 
   public function valid() {
     // It's safe to use current as there never should be a boolean
     // in the entity array.
-    return current($this->entities) !== FALSE;
+    return current($this->items) !== FALSE;
   }
-  
-  /**
-   * Prepend the entity type as argument before invoking controller callbacks.
-   */
-  public static function alterArguments(&$arguments, $model_args) {
-    array_unshift($arguments, $model_args['entity type']);
-  }
+
 }
 
 class EntityResourceFeedModelItem implements ResourceFeedModelItem {
-  protected $entity, $entityType, $entityInfo, $wrapper;
+  protected $data, $entityType, $entityInfo, $wrapper;
   protected $mode = 'raw';
   protected $itemLength = 'fulltext';
  
 
   public function __construct($data, $entity_type, $mode = 'raw', $item_length = 'fulltext') {
-    $this->entity = $data;
+    $this->data = $data;
     $this->entityType = $entity_type;
     $this->entityInfo = entity_get_info($entity_type) + array('name property' => 'name');
-    $this->wrapper = entity_metadata_wrapper($entity_type, $data);
     $this->mode = $mode;
     $this->itemLength = $item_length;
   }
@@ -137,7 +159,7 @@ class EntityResourceFeedModelItem implements ResourceFeedModelItem {
    *  The title of the entity
    */
   public function getName() {
-    return $this->wrapper->get($this->entityInfo['name property'])->value();
+    return $data[$this->entityInfo['name property']];
   }
 
   public function getDescription() {
@@ -153,7 +175,9 @@ class EntityResourceFeedModelItem implements ResourceFeedModelItem {
    *  The entity url
    */
   public function getUrl() {
-    return url(entity_path($this->entityType, $this->entity), array('absolute' => TRUE));
+    $id = $data[$this->entityInfo['object keys']['id']];
+    $return = entity_load($this->entityType, array($id));
+    return url(entity_path($this->entityType, reset($return)), array('absolute' => TRUE));
   }
 
   /**
@@ -163,7 +187,7 @@ class EntityResourceFeedModelItem implements ResourceFeedModelItem {
    *  The created time of the entity as a timestamp
    */
   public function getCreated() {
-    return isset($this->wrapper->created) ? $this->wrapper->created->value() : 0;
+    return isset($data['created']) ? $data['created'] : 0;
   }
 
   /**
@@ -173,17 +197,6 @@ class EntityResourceFeedModelItem implements ResourceFeedModelItem {
    *  The extra properties of the item as an array
    */
   public function getProperties() {
-    $info = entity_get_info();
-    $return = array();
-    foreach ($this->wrapper as $name => $property_info) {
-      if (!isset($property_info['type']) || !isset($info[$property_info['type']])) {
-        $return[$name] = $this->wrapper->$name->value();
-      }
-      // For referenced entities only return the URI.
-      elseif (isset($this->wrapper->$name->url)) {
-        $return[$name] = $this->wrapper->$name->url->value();
-      }
-    }
-    return $return;
+    return $data;
   }
 }
