@@ -19,37 +19,36 @@ class EntityResourceServicesCRUD {
   }
   
   /**
+   * Gets a simple PHP array using URI references for some wrapped data.
+   */
+  protected function getData($wrapper) {
+    $data = array();
+    foreach ($wrapper as $name => $value) {
+      $prop = $wrapper->get($name);
+      if ($prop instanceof EntityDrupalWrapper) {
+        // For referenced entities only return the URI.
+        if (isset($prop->url)) {
+          $data[$name] = $prop->url->value();
+        }
+      }
+      elseif ($prop instanceof EntityValueWrapper) {
+        $data[$name] = $prop->value();
+      }
+      elseif ($prop instanceof EntityListWrapper || $prop instanceof EntityStructureWrapper) {
+        $data[$name] = $this->getData($prop);
+      }
+    }
+    return $data;
+  }
+  
+  /**
    * Retrieve callback.
    */
   public function retrieve($id) {
     $entity = $this->load($id);
     // Transform entity into an array of properties to return.
     $wrapper = entity_metadata_wrapper($this->entityType, $entity);
-    $entity_info = entity_get_info();
-    $data = array();
-    foreach ($wrapper as $name => $property_info) {
-      $type = isset($property_info['type']) ? $property_info['type'] : 'text';
-      if ($is_list = entity_metadata_list_extract_type($type)) {
-        $type = $is_list;
-      }
-      // For non entities just output the value.
-      if (!isset($entity_info[$type])) {
-        $data[$name] = $wrapper->$name->value();
-      }
-      // For referenced entities only return the URI.
-      elseif (!$is_list && isset($wrapper->$name->url)) {
-        $data[$name] = $wrapper->$name->url->value();
-      }
-      elseif ($is_list) {
-        // Support referencing a list of entities.
-        foreach ($wrapper->$name as $key => $value) {
-          $item = $wrapper->{$name}[$key];
-          if (isset($item->url)) {
-            $data[$name][$key] = $item->url->value();
-          }
-        }
-      }
-    }
+    $data = $this->getData($wrapper);
     $data['uri'] = services_resource_uri(array($this->entityType, $id));
     return $data;
   }
@@ -67,8 +66,11 @@ class EntityResourceServicesCRUD {
     }
     $entity = entity_metadata_entity_create($this->entity_type, $values);
     entity_metadata_entity_save($this->entity_type, $entity);
-    $entity->uri = services_resource_uri(array($this->entity_type, $id));
-    return $entity;
+    // Return the entity in the usual form.
+    $wrapper = entity_metadata_wrapper($this->entityType, $entity);
+    $data = $this->getData($wrapper);
+    $data['uri'] = services_resource_uri(array($this->entityType, $id));
+    return $data;
   }
   
   /**
