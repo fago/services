@@ -15,7 +15,7 @@ class EntityResourceServicesCRUD {
     $info = entity_get_info();
     $data = array();
     foreach ($wrapper as $name => $property_info) {
-      if (!isset($info[$property_info['type']])) {
+      if (!isset($property_info['type']) || !isset($info[$property_info['type']])) {
         $data[$name] = $wrapper->$name->value();
       }
       // For referenced entities only return the URI.
@@ -176,7 +176,7 @@ class EntityResourceFeedModelItem implements ResourceFeedModelItem {
     $info = entity_get_info();
     $return = array();
     foreach ($this->wrapper as $name => $property_info) {
-      if (!isset($info[$property_info['type']])) {
+      if (!isset($property_info['type']) || !isset($info[$property_info['type']])) {
         $return[$name] = $this->wrapper->$name->value();
       }
       // For referenced entities only return the URI.
