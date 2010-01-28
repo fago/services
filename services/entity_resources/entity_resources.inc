@@ -38,6 +38,10 @@ class EntityResourceServicesCRUD {
         $data[$name] = $this->getData($prop);
       }
     }
+    // If there is no property metadata, just return the object properties.
+    if (empty($data) && $wrapper instanceof EntityDrupalWrapper) {
+      return get_object_vars($wrapper->value());
+    }
     return $data;
   }
   
