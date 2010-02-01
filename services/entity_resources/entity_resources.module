@@ -21,6 +21,7 @@ function entity_resources_services_resources() {
             'optional' => FALSE,
             'source' => array('path' => 0),
             'description' => 'The id of the entity to get',
+            'type' => isset($info['object keys']['name']) ? 'string' : 'int',
           ),
         ),
         'models' => array(
@@ -69,6 +70,7 @@ function entity_resources_services_resources() {
             'name' => 'id',
             'optional' => FALSE,
             'source' => array('path' => 0),
+            'type' => isset($info['object keys']['name']) ? 'string' : 'int',
           ),
           array(
             'name' => $entity_type,
@@ -99,6 +101,7 @@ function entity_resources_services_resources() {
             'name' => 'id',
             'optional' => FALSE,
             'source' => array('path' => 0),
+            'type' => isset($info['object keys']['name']) ? 'string' : 'int',
           ),
         ),
         'models' => array(
