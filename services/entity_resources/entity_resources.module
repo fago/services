@@ -9,7 +9,7 @@ function entity_resources_services_resources() {
   foreach (entity_get_info() as $entity_type => $info) {
     // We instantiate a CRUD object, which we use for callbacks. The object
     // stores the entity type needed by the callbacks.
-    $crud_object = new EntityResourceServicesCRUD($entity_type);
+    $crud_object = EntityResourceServicesCRUD::get($entity_type);
     
     // Integrate all entities for which we have view access metadata.
     if ($crud_object->access('view') !== NULL) {

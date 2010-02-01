@@ -7,13 +7,28 @@
  */
 class EntityResourceServicesCRUD {
   
+  protected static $instances;
+  
+  /**
+   * Gets an instance for the given entity type by making sure there is just
+   * one instance per entity type.
+   */
+  public static function get($entity_type) {
+    if (!isset(self::$instances[$entity_type])) {
+      return new EntityResourceServicesCRUD($entity_type);
+    }
+    return self::$instances[$entity_type];
+  }
+  
   protected $entityType;
+  public $callbacks = array();
   
   public function __construct($entity_type) {
     $this->entityType = $entity_type;
+    self::$instances[$entity_type] = $this;
   }
   
-  protected function load($id) {
+  public function load($id) {
     $return = entity_load($this->entityType, array($id));
     return reset($return);
   }
@@ -107,6 +122,16 @@ class EntityResourceServicesCRUD {
   public function access($op, $args = array()) {
     $entity = ($op != 'create' && !empty($args)) ? $this->load($args[0]) : NULL;
     return entity_metadata_entity_access($op, $this->entityType, $entity);
+  }
+  
+  /**
+   * Magic method: Invokes the defined callback for the method. That way this
+   * object may be reused by modules to implement callbacks for actions.
+   */
+  public function __call($name, $args) {
+    if (isset($this->callbacks[$name])) {
+      return $this->callbacks[$name]($this, $args, $this->entityType);
+    }
   }
 }
 
