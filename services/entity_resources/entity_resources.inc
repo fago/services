@@ -20,23 +20,10 @@ class EntityResourceServicesCRUD {
     return self::$instances[$entity_type];
   }
   
-  protected $entityType;
-  public $callbacks = array();
-  
-  public function __construct($entity_type) {
-    $this->entityType = $entity_type;
-    self::$instances[$entity_type] = $this;
-  }
-  
-  public function load($id) {
-    $return = entity_load($this->entityType, array($id));
-    return reset($return);
-  }
-  
   /**
    * Gets a simple PHP array using URI references for some wrapped data.
    */
-  protected function getData($wrapper) {
+  public static function getData($wrapper) {
     $data = array();
     foreach ($wrapper as $name => $value) {
       $prop = $wrapper->get($name);
@@ -50,7 +37,7 @@ class EntityResourceServicesCRUD {
         $data[$name] = $prop->value();
       }
       elseif ($prop instanceof EntityListWrapper || $prop instanceof EntityStructureWrapper) {
-        $data[$name] = $this->getData($prop);
+        $data[$name] = self::getData($prop);
       }
     }
     // If there is no property metadata, just return the object properties.
@@ -58,6 +45,21 @@ class EntityResourceServicesCRUD {
       return get_object_vars($wrapper->value());
     }
     return $data;
+  }
+  
+  
+  
+  protected $entityType;
+  public $callbacks = array();
+  
+  public function __construct($entity_type) {
+    $this->entityType = $entity_type;
+    self::$instances[$entity_type] = $this;
+  }
+  
+  public function load($id) {
+    $return = entity_load($this->entityType, array($id));
+    return reset($return);
   }
   
   /**
