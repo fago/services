@@ -26,18 +26,23 @@ class EntityResourceServicesCRUD {
   public static function getData($wrapper) {
     $data = array();
     foreach ($wrapper as $name => $value) {
-      $prop = $wrapper->get($name);
-      if ($prop instanceof EntityDrupalWrapper) {
-        // For referenced entities only return the URI.
-        if (isset($prop->url)) {
-          $data[$name] = $prop->url->value();
+      try {
+        $prop = $wrapper->get($name);
+        if ($prop instanceof EntityDrupalWrapper) {
+          // For referenced entities only return the URI.
+          if (isset($prop->url)) {
+            $data[$name] = $prop->url->value();
+          }
+        }
+        elseif ($prop instanceof EntityValueWrapper) {
+          $data[$name] = $prop->value();
+        }
+        elseif ($prop instanceof EntityListWrapper || $prop instanceof EntityStructureWrapper) {
+          $data[$name] = self::getData($prop);
         }
       }
-      elseif ($prop instanceof EntityValueWrapper) {
-        $data[$name] = $prop->value();
-      }
-      elseif ($prop instanceof EntityListWrapper || $prop instanceof EntityStructureWrapper) {
-        $data[$name] = self::getData($prop);
+      catch (EntityMetadataWrapperException $e) {
+        // A property isn't set - ignore that.
       }
     }
     // If there is no property metadata, just return the object properties.
