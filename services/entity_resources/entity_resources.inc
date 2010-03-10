@@ -25,20 +25,23 @@ class EntityResourceServicesCRUD {
    */
   public static function getData($wrapper) {
     $data = array();
-    foreach ($wrapper as $name => $value) {
+    foreach ($wrapper as $name => $prop) {
       try {
-        $prop = $wrapper->get($name);
         if ($prop instanceof EntityDrupalWrapper) {
-          // For referenced entities only return the URI.
+          // For referenced entities just return some metadata and the resource
+          // URI, so the caller is able to fetch the entity if desired.
+          $data[$name]['entity type'] = $prop->type();
+          $data[$name]['entity id'] = $prop->getIdentifier();
+          $data[$name]['resource uri'] = services_resource_uri(array($prop->type(), $prop->getIdentifier()));
           if (isset($prop->url)) {
-            $data[$name] = $prop->url->value();
+            $data[$name]['url'] = $prop->url->value();
           }
         }
-        elseif ($prop instanceof EntityValueWrapper) {
-          $data[$name] = $prop->value();
-        }
-        elseif ($prop instanceof EntityListWrapper || $prop instanceof EntityStructureWrapper) {
+        elseif ($prop instanceof IteratorAggregate) {
           $data[$name] = self::getData($prop);
+        }
+        else {
+          $data[$name] = $prop->value();
         }
       }
       catch (EntityMetadataWrapperException $e) {
@@ -90,10 +93,9 @@ class EntityResourceServicesCRUD {
         return services_error('Missing property ' . check_plain($key), 406);
       }
     }
-    $entity = entity_metadata_entity_create($this->entity_type, $values);
-    entity_metadata_entity_save($this->entity_type, $entity);
+    $wrapper = entity_metadata_entity_create($this->entity_type, $values);
+    $wrapper->save();
     // Return the entity in the usual form.
-    $wrapper = entity_metadata_wrapper($this->entityType, $entity);
     $data = $this->getData($wrapper);
     $data['uri'] = services_resource_uri(array($this->entityType, $id));
     return $data;
@@ -108,7 +110,7 @@ class EntityResourceServicesCRUD {
       foreach ($data as $name => $value) {
         $wrapper->$name->set($value);
         //TODO: If the property is a entity, get the id out of the value (an uri?)
-        // load the referenced entity and pass it.
+        // and pass it.
       }
       return $id;
     }
@@ -128,7 +130,7 @@ class EntityResourceServicesCRUD {
    */
   public function access($op, $args = array()) {
     $entity = ($op != 'create' && !empty($args)) ? $this->load($args[0]) : NULL;
-    return entity_metadata_entity_access($op, $this->entityType, $entity);
+    return ($op != 'create' || $entity) && entity_metadata_entity_access($op, $this->entityType, $entity);
   }
   
   /**
