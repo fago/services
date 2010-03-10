@@ -48,9 +48,12 @@ class EntityResourceServicesCRUD {
         // A property isn't set - ignore that.
       }
     }
-    // If there is no property metadata, just return the object properties.
-    if (empty($data) && $wrapper instanceof EntityDrupalWrapper) {
-      return get_object_vars($wrapper->value());
+    if ($wrapper instanceof EntityDrupalWrapper) {
+      // If there is no property metadata, just return the object properties.
+      if (empty($data)) {
+        $data = get_object_vars($wrapper->value());
+      }
+      $data['resource uri'] = services_resource_uri(array($wrapper->type(), $wrapper->getIdentifier()));
     }
     return $data;
   }
@@ -77,9 +80,7 @@ class EntityResourceServicesCRUD {
     $entity = $this->load($id);
     // Transform entity into an array of properties to return.
     $wrapper = entity_metadata_wrapper($this->entityType, $entity);
-    $data = $this->getData($wrapper);
-    $data['uri'] = services_resource_uri(array($this->entityType, $id));
-    return $data;
+    return $this->getData($wrapper);
   }
   
   /**
@@ -96,9 +97,7 @@ class EntityResourceServicesCRUD {
     $wrapper = entity_metadata_entity_create($this->entity_type, $values);
     $wrapper->save();
     // Return the entity in the usual form.
-    $data = $this->getData($wrapper);
-    $data['uri'] = services_resource_uri(array($this->entityType, $id));
-    return $data;
+    return $this->getData($wrapper);
   }
   
   /**
