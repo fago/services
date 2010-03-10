@@ -22,8 +22,16 @@ class EntityResourceServicesCRUD {
   
   /**
    * Gets a simple PHP array using URI references for some wrapped data.
+   *
+   * @param $wrapper EntityMetadataWrapper
+   *   A wrapper containing the data.
+   * @param $resource_path
+   *   Pass the path of a service endpoint to have proper resource URIs for that
+   *   service generated. Pass FALSE to skip adding resource URIs and keep the
+   *   default of NULL to add in resource URIs for the currently active services
+   *   endpoint.
    */
-  public static function getData($wrapper) {
+  public static function getData($wrapper, $resource_path = NULL) {
     $data = array();
     foreach ($wrapper as $name => $prop) {
       try {
@@ -32,7 +40,8 @@ class EntityResourceServicesCRUD {
           // URI, so the caller is able to fetch the entity if desired.
           $data[$name]['entity type'] = $prop->type();
           $data[$name]['entity id'] = $prop->getIdentifier();
-          $data[$name]['resource uri'] = services_resource_uri(array($prop->type(), $prop->getIdentifier()));
+          self::addResourceURI($data[$name], $prop, $resource_path);
+
           if (isset($prop->url)) {
             $data[$name]['url'] = $prop->url->value();
           }
@@ -41,7 +50,8 @@ class EntityResourceServicesCRUD {
           $data[$name] = self::getData($prop);
         }
         else {
-          $data[$name] = $prop->value();
+          // Decode textual values so the consumer can safely sanitize it.
+          $data[$name] = $prop->value(array('decode' => TRUE));
         }
       }
       catch (EntityMetadataWrapperException $e) {
@@ -53,9 +63,19 @@ class EntityResourceServicesCRUD {
       if (empty($data)) {
         $data = get_object_vars($wrapper->value());
       }
-      $data['resource uri'] = services_resource_uri(array($wrapper->type(), $wrapper->getIdentifier()));
+      self::addResourceURI($data, $wrapper, $resource_path);
     }
     return $data;
+  }
+  
+
+  protected static function addResourceURI(&$data, $wrapper, $resource_path = NULL) {
+    if (!isset($resource_path)) {
+      $data['resource uri'] = services_resource_uri(array($wrapper->type(), $wrapper->getIdentifier()));
+    }
+    elseif ($resource_path) {
+      $data['resource uri'] = url(implode('/', array($resource_path, $wrapper->type(), $wrapper->getIdentifier())), array('absolute' => TRUE));
+    }
   }
   
   
@@ -129,7 +149,7 @@ class EntityResourceServicesCRUD {
    */
   public function access($op, $args = array()) {
     $entity = ($op != 'create' && !empty($args)) ? $this->load($args[0]) : NULL;
-    return ($op != 'create' || $entity) && entity_metadata_entity_access($op, $this->entityType, $entity);
+    return $entity !== FALSE && entity_metadata_entity_access($op, $this->entityType, $entity);
   }
   
   /**
