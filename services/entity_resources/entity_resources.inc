@@ -1,6 +1,8 @@
 <?php
 // $Id: entity_resources.inc,v 1.1.2.1 2009/09/05 13:57:58 marcingy Exp $
 
+module_load_include('runtime.inc', 'services');
+
 /**
  * Implements entity CRUD methods for use as services resources callbacks. Note
  * that the model alters the arguments to prepend the entity type.
